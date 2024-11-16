@@ -1,3 +1,44 @@
+"""
+This script updates the topics column in a specified Supabase table (e.g., "categories" or "books_metadata") 
+based on a CSV file input. It supports resuming from the last successfully processed row using a checkpoint file, 
+ensuring efficient handling of large datasets.
+
+The script performs the following steps:
+1. Reads a CSV file containing data to update.
+2. Loads environment variables from a `.env` file for Supabase configuration.
+3. Reads and updates a checkpoint file to resume processing after an interruption.
+4. Validates and parses a list of topics from the CSV file.
+5. Updates the specified Supabase table and column for each row in the CSV file.
+
+Key Features:
+- Resumable processing using a checkpoint file.
+- Validation of data to ensure proper format.
+- Logging for tracking progress and debugging issues.
+
+Usage:
+    python script.py <csv_file> <checkpoint_file> <table> <column> [--supabase_url URL] [--supabase_key KEY]
+
+Arguments:
+    csv_file        Path to the CSV file containing topics per category or metadata.
+    checkpoint_file Path to the checkpoint file to store the last processed ID.
+    table           The table to update (choices: "categories" or "books_metadata").
+    column          The column to update (choices: "topics" or "ai_topics").
+    --supabase_url  Supabase URL (optional, default: fetched from .env file).
+    --supabase_key  Supabase API Key (optional, default: fetched from .env file).
+
+Example:
+    python script.py data.csv checkpoint.txt categories topics --supabase_url https://xyz.supabase.co --supabase_key your-api-key
+
+Dependencies:
+- pandas: For handling CSV data.
+- python-dotenv: For loading environment variables from `.env` files.
+- supabase-py: For interacting with the Supabase database.
+
+Ensure that the `.env` file contains the following variables:
+    SUPABASE_URL=<your_supabase_url>
+    SUPABASE_KEY=<your_supabase_api_key>
+"""
+
 import os
 import argparse
 import ast
@@ -7,9 +48,7 @@ from dotenv import load_dotenv
 from supabase import create_client, Client
 
 # Setup logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # Load environment variables from .env file
 load_dotenv()
@@ -47,9 +86,7 @@ def main(csv_file, checkpoint_file, table, column, supabase_url, supabase_key):
                 # Resume from the next row
                 df = df.iloc[last_processed_index[0] + 1 :]
         except Exception as e:
-            logging.error(
-                f"An error occurred while trying to filter the DataFrame: {e}"
-            )
+            logging.error(f"An error occurred while trying to filter the DataFrame: {e}")
             return
 
     # Update the database
@@ -63,19 +100,12 @@ def main(csv_file, checkpoint_file, table, column, supabase_url, supabase_key):
             if not isinstance(topics, list):
                 raise ValueError("The topics_list is not a valid list.")
         except (ValueError, SyntaxError) as e:
-            logging.warning(
-                f"Skipping row with id {row_id}: Invalid list format. Error: {e}"
-            )
+            logging.warning(f"Skipping row with id {row_id}: Invalid list format. Error: {e}")
             continue
 
         # Update the topics column in the categories table
         try:
-            response = (
-                supabase.table(table)
-                .update({column: topics})
-                .eq("id", row_id)
-                .execute()
-            )
+            response = supabase.table(table).update({column: topics}).eq("id", row_id).execute()
 
             # Check if the update was successful
             if response.data:
@@ -83,9 +113,7 @@ def main(csv_file, checkpoint_file, table, column, supabase_url, supabase_key):
                 # Update the checkpoint file with the current successfully processed ID
                 update_checkpoint(row_id)
             elif response.error:
-                logging.error(
-                    f"Failed to update topics for id {row_id}. Error: {response.error}"
-                )
+                logging.error(f"Failed to update topics for id {row_id}. Error: {response.error}")
             else:
                 logging.warning(f"Unexpected response for id {row_id}: {response}")
         except Exception as e:
@@ -97,9 +125,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Update topics in categories or books_metadata table, through a CSV file"
     )
-    parser.add_argument(
-        "csv_file", help="Path to the CSV file containing topics per category"
-    )
+    parser.add_argument("csv_file", help="Path to the CSV file containing topics per category")
     parser.add_argument("checkpoint_file", help="Path to the checkpoint file")
     parser.add_argument(
         "table",
@@ -111,9 +137,7 @@ if __name__ == "__main__":
         choices=["topics", "ai_topics"],
         help="The column to update (topics or ai_topics)",
     )
-    parser.add_argument(
-        "--supabase_url", default=os.getenv("SUPABASE_URL"), help="Supabase URL"
-    )
+    parser.add_argument("--supabase_url", default=os.getenv("SUPABASE_URL"), help="Supabase URL")
     parser.add_argument(
         "--supabase_key", default=os.getenv("SUPABASE_KEY"), help="Supabase API Key"
     )
