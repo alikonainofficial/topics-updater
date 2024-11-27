@@ -1,5 +1,5 @@
 """
-This script updates the topics column in a specified Supabase table (e.g., "categories" or "books_metadata") 
+This script updates the data in a specified Supabase table (e.g., "categories" or "books_metadata") 
 based on a CSV file input. It supports resuming from the last successfully processed row using a checkpoint file, 
 ensuring efficient handling of large datasets.
 
@@ -7,7 +7,7 @@ The script performs the following steps:
 1. Reads a CSV file containing data to update.
 2. Loads environment variables from a `.env` file for Supabase configuration.
 3. Reads and updates a checkpoint file to resume processing after an interruption.
-4. Validates and parses a list of topics from the CSV file.
+4. Validates and parses a list of data from the CSV file.
 5. Updates the specified Supabase table and column for each row in the CSV file.
 
 Key Features:
@@ -19,10 +19,10 @@ Usage:
     python script.py <csv_file> <checkpoint_file> <table> <column> [--supabase_url URL] [--supabase_key KEY]
 
 Arguments:
-    csv_file        Path to the CSV file containing topics per category or metadata.
+    csv_file        Path to the CSV file containing data to be updated.
     checkpoint_file Path to the checkpoint file to store the last processed ID.
     table           The table to update (choices: "categories" or "books_metadata").
-    column          The column to update (choices: "topics" or "ai_topics").
+    column          The column to update (choices: "topics", "ai_topics" or "ai_categories").
     --supabase_url  Supabase URL (optional, default: fetched from .env file).
     --supabase_key  Supabase API Key (optional, default: fetched from .env file).
 
@@ -92,28 +92,30 @@ def main(csv_file, checkpoint_file, table, column, supabase_url, supabase_key):
     # Update the database
     for _, row in df.iterrows():
         row_id = row["id"]
-        topics_str = row["topics_list"]
+        column_data_str = row["topics_list"]
 
         # Convert the string representation of the list into an actual Python list
         try:
-            topics = ast.literal_eval(topics_str)
-            if not isinstance(topics, list):
-                raise ValueError("The topics_list is not a valid list.")
+            formatted_data = ast.literal_eval(column_data_str)
+            if not isinstance(formatted_data, list):
+                raise ValueError("The data is not a valid.")
         except (ValueError, SyntaxError) as e:
             logging.warning(f"Skipping row with id {row_id}: Invalid list format. Error: {e}")
             continue
 
-        # Update the topics column in the categories table
+        # Update the column in the table
         try:
-            response = supabase.table(table).update({column: topics}).eq("id", row_id).execute()
+            response = (
+                supabase.table(table).update({column: formatted_data}).eq("id", row_id).execute()
+            )
 
             # Check if the update was successful
             if response.data:
-                logging.info(f"Successfully updated topics for id {row_id}")
+                logging.info(f"Successfully updated data for id {row_id}")
                 # Update the checkpoint file with the current successfully processed ID
                 update_checkpoint(row_id)
             elif response.error:
-                logging.error(f"Failed to update topics for id {row_id}. Error: {response.error}")
+                logging.error(f"Failed to update data for id {row_id}. Error: {response.error}")
             else:
                 logging.warning(f"Unexpected response for id {row_id}: {response}")
         except Exception as e:
@@ -123,9 +125,9 @@ def main(csv_file, checkpoint_file, table, column, supabase_url, supabase_key):
 if __name__ == "__main__":
     # Parse command line arguments
     parser = argparse.ArgumentParser(
-        description="Update topics in categories or books_metadata table, through a CSV file"
+        description="Update data in categories or books_metadata table, through a CSV file"
     )
-    parser.add_argument("csv_file", help="Path to the CSV file containing topics per category")
+    parser.add_argument("csv_file", help="Path to the CSV file containing the data to be updated")
     parser.add_argument("checkpoint_file", help="Path to the checkpoint file")
     parser.add_argument(
         "table",
@@ -134,8 +136,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "column",
-        choices=["topics", "ai_topics"],
-        help="The column to update (topics or ai_topics)",
+        choices=["topics", "ai_topics", "ai_categories"],
+        help="The column to update (topics, ai_topics or ai_categories)",
     )
     parser.add_argument("--supabase_url", default=os.getenv("SUPABASE_URL"), help="Supabase URL")
     parser.add_argument(
