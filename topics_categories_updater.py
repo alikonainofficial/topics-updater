@@ -92,7 +92,9 @@ def main(csv_file, checkpoint_file, table, column, supabase_url, supabase_key):
     # Update the database
     for _, row in df.iterrows():
         row_id = row["id"]
-        column_data_str = row["topics_list"]
+        column_data_str = row[
+            "topics_list"
+        ]  # Change this to the appropriate column name based on the input CSV file
 
         # Convert the string representation of the list into an actual Python list
         try:

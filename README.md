@@ -35,7 +35,7 @@ These values are used by the script to connect to Supabase. Alternatively, they 
 ## Usage
 
 ```bash
-python3 topics_updater.py <csv_file> <checkpoint_file> <table> <column> [--supabase_url SUPABASE_URL] [--supabase_key SUPABASE_KEY]
+python3 topics_categories_updater.py <csv_file> <checkpoint_file> <table> <column> [--supabase_url SUPABASE_URL] [--supabase_key SUPABASE_KEY]
 ```
 
 ## Arguments
@@ -50,7 +50,7 @@ python3 topics_updater.py <csv_file> <checkpoint_file> <table> <column> [--supab
 ## Example
 
 ```bash
-python3 topics_updater.py sample_input.csv checkpoint.txt categories topics --supabase_url "https://your-supabase-url" --supabase_key "your-api-key"
+python3 topics_categories_updater.py sample_input.csv checkpoint.txt categories topics --supabase_url "https://your-supabase-url" --supabase_key "your-api-key"
 ```
 
 This will update the data column in the categories table using the data from sample_input.csv. The script will resume from the last processed row if a checkpoint file exists.
@@ -64,7 +64,7 @@ The checkpoint file is a simple text file that contains the id of the last succe
 The CSV file should contain at least two columns:
 
     • id: The unique identifier for the record.
-    • topics_list: A string representation of a list (e.g., ["topic1", "topic2"]). This string will be parsed into a Python list and used to update the specified column in the database.
+    • topics_list or categories_list: A string representation of a list (e.g., ["topic1", "topic2"] or ["category1", "category2"]). This string will be parsed into a Python list and used to update the specified column in the database.
 
 ## Example CSV:
 
@@ -74,17 +74,23 @@ The CSV file should contain at least two columns:
 | 2   | ["topic3", "topic4"]           |
 | 3   | ["topic5", "topic6", "topic7"] |
 
+| id  | categories_list                         |
+| --- | --------------------------------------- |
+| 1   | ["category1", "category2"]              |
+| 2   | ["category3", "category4"]              |
+| 3   | ["category5", "category6", "category7"] |
+
 ## Logging
 
 The script will log progress, warnings, and errors to the console. Key events include:
 
     • Successful updates to the database.
-    • Skipping rows with invalid topics_list.
+    • Skipping rows with invalid topics_list/categories_list.
     • Errors during the execution of database operations.
 
 ## Error Handling
 
-    • Invalid topics_list: Rows with an invalid or incorrectly formatted topics_list are skipped with a warning logged.
+    • Invalid topics_list/categories_list: Rows with an invalid or incorrectly formatted topics_list/categories_list are skipped with a warning logged.
     • Database Errors: Any errors during communication with Supabase (e.g., API errors, failed updates) will be logged as errors.
 
 ## License
